@@ -49,6 +49,8 @@ function menu_draw()
 		love.graphics.print(">", 1*scale, 124*scale, 0, scale)
 	elseif playerselection == 2 then
 		love.graphics.print(">", 47*scale, 124*scale, 0, scale)
+	elseif playerselection == 3 then
+		love.graphics.print(">", 67*scale, 124*scale, 0, scale)
 	else
 		love.graphics.print(">", 93*scale, 124*scale, 0, scale)
 	end
@@ -91,7 +93,7 @@ function menu_draw()
 		end
 	----------------------------------------------
 	
-	elseif gamestate == "multimenu" then
+	elseif (gamestate == "multimenu") or (gamestate == "multimenuA") then
 		love.graphics.draw(mpmenu, 0, 0, 0, scale)
 		if selection > 2 then
 			if gameno == 1 then

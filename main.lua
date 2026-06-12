@@ -4,6 +4,7 @@ function love.load()
 	require "gameB"
 	require "gameBmulti"
 	require "gameA"
+	require "gameAmulti"
 	require "menu"
 	require "failed"
 	require "rocket"
@@ -336,7 +337,7 @@ function love.update(dt)
 		dt = math.min(dt, minfps)
 	end
 	
-	if gamestate == "logo" or gamestate == "credits" or gamestate == "title" or gamestate == "menu" or gamestate == "multimenu" or gamestate == "highscoreentry" or gamestate == "options" then
+	if gamestate == "logo" or gamestate == "credits" or gamestate == "title" or gamestate == "menu" or gamestate == "multimenu" or gamestate == "multimenuA" or gamestate == "highscoreentry" or gamestate == "options" then
 		menu_update(dt)
 	elseif gamestate == "gameA" or gamestate == "failingA" then
 		if pause == false then
@@ -346,15 +347,17 @@ function love.update(dt)
 		if pause == false then
 			gameB_update(dt)
 		end
-		elseif gamestate == "gameBmulti" or gamestate == "failingBmulti" or gamestate == "failedBmulti" or gamestate == "gameBmulti_results" then
+	elseif gamestate == "gameBmulti" or gamestate == "failingBmulti" or gamestate == "failedBmulti" or gamestate == "gameBmulti_results" then
 		gameBmulti_update(dt)
+	elseif gamestate == "gameAmulti" or gamestate == "failingAmulti" or gamestate == "failedAmulti" or gamestate == "gameAmulti_results" then
+    	gameAmulti_update(dt)
 	elseif gamestate == "rocket1" or gamestate == "rocket2" or gamestate == "rocket3" or gamestate == "rocket4" then
 		rocket_update()
 	end
 end
 
 function love.draw()
-	if gamestate == "logo" or gamestate == "credits" or gamestate == "title" or gamestate == "menu" or gamestate == "multimenu" or gamestate == "highscoreentry" or gamestate == "options" then
+	if gamestate == "logo" or gamestate == "credits" or gamestate == "title" or gamestate == "menu" or gamestate == "multimenu" or gamestate == "multimenuA" or gamestate == "highscoreentry" or gamestate == "options" then
 		menu_draw()
 	elseif gamestate == "gameA" or gamestate == "failingA" then
 		gameA_draw()
@@ -362,6 +365,8 @@ function love.draw()
 		gameB_draw()
 	elseif gamestate == "gameBmulti" or gamestate == "failingBmulti" or gamestate == "failedBmulti" or gamestate == "gameBmulti_results" then
 		gameBmulti_draw()
+	elseif gamestate == "gameAmulti" or gamestate == "failingAmulti" or gamestate == "failedAmulti" or gamestate == "gameAmulti_results" then
+    	gameAmulti_draw()
 	elseif gamestate == "failed" then
 		failed_draw()
 	elseif gamestate == "rocket1" or gamestate == "rocket2" or gamestate == "rocket3" or gamestate == "rocket4" then
@@ -815,7 +820,7 @@ function love.keypressed( key, unicode )
 		
 	elseif gamestate == "title" then
 		if controls.check("return", key) then
-			if playerselection ~= 3 then
+			if playerselection ~= 4 then
 				if soundenabled then
 					love.audio.stop(musictitle)
 					if musicno < 4 then
@@ -827,6 +832,8 @@ function love.keypressed( key, unicode )
 				gamestate = "menu"
 			elseif playerselection == 2 then
 				gamestate = "multimenu"
+			elseif playerselection == 3 then
+    			gamestate = "multimenuA"
 			else
 				gamestate = "options"
 				if soundenabled then
@@ -839,7 +846,7 @@ function love.keypressed( key, unicode )
 			love.event.push("q")
 		elseif controls.check("left", key) and playerselection > 1 then
 			playerselection = playerselection - 1
-		elseif controls.check("right", key) and playerselection < 3 then
+		elseif controls.check("right", key) and playerselection < 4 then
 			playerselection = playerselection + 1
 		end
 		
@@ -1014,7 +1021,7 @@ function love.keypressed( key, unicode )
 			
 		end
 	
-	elseif gamestate == "multimenu" then	
+	elseif (gamestate == "multimenu") or (gamestate == "multimenuA") then	
 		oldmusicno = musicno
 		if controls.check("escape", key) then
 			if musicno < 4 then
@@ -1024,7 +1031,11 @@ function love.keypressed( key, unicode )
 			love.audio.stop(musictitle)
 			love.audio.play(musictitle)
 		elseif controls.check("return", key) then
-			gameBmulti_load()
+			if gamestate == "multimenu" then
+				gameBmulti_load()
+			else
+				gameAmulti_load()
+			end
 		elseif controls.check("left", key) then
 			if selection == 2 or selection == 4 or selection == 6 then
 				selection = selection - 1
@@ -1152,6 +1163,43 @@ function love.keypressed( key, unicode )
 				love.graphics.setMode( 160*scale, 144*scale, false, vsync, 0 )
 			end
 			gamestate = "multimenu"
+		end
+
+	elseif gamestate == "gameAmulti" and gamestarted == false then
+		if controls.check("escape", key) then
+			if not fullscreen then
+				love.graphics.setMode( 160*scale, 144*scale, false, vsync, 0 )
+			end
+			gamestate = "multimenuA"
+			if musicno < 4 then
+				love.audio.play(music[musicno])
+			end
+		end
+	elseif gamestate == "gameAmulti" and gamestarted == true then
+		if controls.check("escape", key) then
+			if not fullscreen then
+				love.graphics.setMode( 160*scale, 144*scale, false, vsync, 0 )
+			end
+			gamestate = "multimenuA"
+		end
+		if controls.check("left", key) or controls.check("right", key) or controls.check("leftp2", key) or controls.check("rightp2", key) then
+			love.audio.stop(blockmove)
+			love.audio.play(blockmove)
+		elseif controls.check("rotateleft", key) or controls.check("rotateright", key) or controls.check("rotaterightp2", key) or controls.check("rotateleftp2", key) then
+			love.audio.stop(blockturn)
+			love.audio.play(blockturn)
+		end
+		
+	elseif gamestate == "gameBmulti_results" then
+		if controls.check("return", key) or controls.check("escape", key) then
+			if musicno < 4 then
+				love.audio.stop(musicresults)
+				love.audio.play(music[musicno])
+			end
+			if not fullscreen then
+				love.graphics.setMode( 160*scale, 144*scale, false, vsync, 0 )
+			end
+			gamestate = "multimenuA"
 		end
 		
 	elseif gamestate == "failed" then
