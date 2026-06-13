@@ -12,7 +12,7 @@ AMULTI_P2_RIGHT = 868
 
 amulti_lineclearduration     = 1.2
 amulti_lineclearblinks       = 7
-amulti_linecleartreshold     = 8.1
+amulti_linecleartreshold     = 5.1
 amulti_densityupdateinterval = 1/30
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -484,24 +484,42 @@ function startgameAmulti()
 end
 
 function game_addTetriAmultip1()
-	counterp1 = counterp1 + 1
-	createtetriAmultip1(nextpiecep1, counterp1, 388, blockstartY)
-	tetribodiesp1[counterp1]:setLinearVelocity(0, difficulty_speed)
-	if counterp1 > #randomtable then table.insert(randomtable, math.random(7)) end
-	local r = randomtable[counterp1]
-	if r == 2 then nextpiecep1 = 3
-	elseif r == 3 then nextpiecep1 = 2
-	elseif r == 5 then nextpiecep1 = 7
-	elseif r == 7 then nextpiecep1 = 5
-	else nextpiecep1 = r end
+    -- Находим первый свободный индекс начиная с counterp1+1
+    local newid = counterp1 + 1
+    while tetribodiesp1[newid] ~= nil do
+        newid = newid + 1
+    end
+    counterp1 = newid
+
+    createtetriAmultip1(nextpiecep1, counterp1, 388, blockstartY)
+    tetribodiesp1[counterp1]:setLinearVelocity(0, difficulty_speed)
+
+    -- Убеждаемся, что randomtable достаточно велик
+    while counterp1 > #randomtable do
+        table.insert(randomtable, math.random(7))
+    end
+    local r = randomtable[counterp1]
+    if r == 2 then nextpiecep1 = 3
+    elseif r == 3 then nextpiecep1 = 2
+    elseif r == 5 then nextpiecep1 = 7
+    elseif r == 7 then nextpiecep1 = 5
+    else nextpiecep1 = r end
 end
 
 function game_addTetriAmultip2()
-	counterp2 = counterp2 + 1
-	createtetriAmultip2(nextpiecep2, counterp2, 708, blockstartY)
-	tetribodiesp2[counterp2]:setLinearVelocity(0, difficulty_speed)
-	if counterp2 > #randomtable then table.insert(randomtable, math.random(7)) end
-	nextpiecep2 = randomtable[counterp2]
+    local newid = counterp2 + 1
+    while tetribodiesp2[newid] ~= nil do
+        newid = newid + 1
+    end
+    counterp2 = newid
+
+    createtetriAmultip2(nextpiecep2, counterp2, 708, blockstartY)
+    tetribodiesp2[counterp2]:setLinearVelocity(0, difficulty_speed)
+
+    while counterp2 > #randomtable do
+        table.insert(randomtable, math.random(7))
+    end
+    nextpiecep2 = randomtable[counterp2]
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
