@@ -48,9 +48,9 @@ function menu_draw()
 	if playerselection == 1 then
 		love.graphics.print(">", 1*scale, 124*scale, 0, scale)
 	elseif playerselection == 2 then
-		love.graphics.print(">", 47*scale, 124*scale, 0, scale)
+		love.graphics.print(">", 27*scale, 124*scale, 0, scale)
 	elseif playerselection == 3 then
-		love.graphics.print(">", 67*scale, 124*scale, 0, scale)
+		love.graphics.print(">", 60*scale, 124*scale, 0, scale)
 	else
 		love.graphics.print(">", 93*scale, 124*scale, 0, scale)
 	end

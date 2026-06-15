@@ -1,3 +1,4 @@
+if os.getenv("LOVE2D_TOOLS") then pcall(require, "_love2d_tools_bridge") end
 function love.load()
 	--requires--
 	require "controls"
@@ -830,9 +831,9 @@ function love.keypressed( key, unicode )
 			end
 			if playerselection == 1 then
 				gamestate = "menu"
-			elseif playerselection == 2 then
-				gamestate = "multimenu"
 			elseif playerselection == 3 then
+				gamestate = "multimenu"
+			elseif playerselection == 2 then
     			gamestate = "multimenuA"
 			else
 				gamestate = "options"
@@ -1190,7 +1191,7 @@ function love.keypressed( key, unicode )
 			love.audio.play(blockturn)
 		end
 		
-	elseif gamestate == "gameBmulti_results" then
+	elseif gamestate == "gameAmulti_results" then
 		if controls.check("return", key) or controls.check("escape", key) then
 			if musicno < 4 then
 				love.audio.stop(musicresults)
