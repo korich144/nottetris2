@@ -218,13 +218,14 @@ function gameAmulti_draw()
 
 	-- fill gauges (req #12: per-player, settled only)
 	local lineH = 8 * mpscale
+	local gaugeOffset = 49 * mpscale
 	for i = 1, 18 do
 		-- P1 gauge (left strip)
 		local f1 = amulti_linereap1[i] / 1024 / amulti_linecleartreshold
 		if f1 > 1 then f1 = 1 end
 		local c1 = (f1 == 1) and 0 or (235 - f1*180)
 		love.graphics.setColor(c1, c1, c1)
-		love.graphics.rectangle("fill", 0, (i-1)*lineH, math.floor(6*mpscale*f1), lineH)
+		love.graphics.rectangle("fill", gaugeOffset, (i-1)*lineH, math.floor(6*mpscale*f1), lineH)
 
 		-- P2 gauge (right strip, grows leftward from screen edge)
 		local f2 = amulti_linereap2[i] / 1024 / amulti_linecleartreshold
@@ -232,7 +233,7 @@ function gameAmulti_draw()
 		local c2 = (f2 == 1) and 0 or (235 - f2*180)
 		love.graphics.setColor(c2, c2, c2)
 		local bw = math.floor(6*mpscale*f2)
-		love.graphics.rectangle("fill", 274*mpscale - bw, (i-1)*lineH, bw, lineH)
+		love.graphics.rectangle("fill", 274*mpscale - gaugeOffset - bw, (i-1)*lineH, bw, lineH)
 	end
 	love.graphics.setColor(255, 255, 255)
 
