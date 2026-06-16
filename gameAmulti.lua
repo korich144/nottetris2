@@ -694,6 +694,8 @@ function endblockAmultip1()
 		if p2fail then endgameAmulti() end
 	else
 		love.audio.stop(blockfall);  love.audio.play(blockfall)
+		-- Award score for a placed piece
+		scorescorep1 = scorescorep1 + 100
 		-- req #2: include just-settled P1 (skip_p1=false), skip still-flying P2 (skip_p2=true)
 		local removed = amulti_checklinedensity(true, false, true)
 		if not removed then
@@ -723,6 +725,8 @@ function endblockAmultip2()
 		if p1fail then endgameAmulti() end
 	else
 		love.audio.stop(blockfall);  love.audio.play(blockfall)
+		-- Award score for a placed piece
+		scorescorep2 = scorescorep2 + 100
 		-- req #2: skip still-flying P1 (skip_p1=true), include just-settled P2 (skip_p2=false)
 		local removed = amulti_checklinedensity(true, true, false)
 		if not removed then
@@ -1378,6 +1382,10 @@ function endblockAmultip_simultaneous()
 	if p1fail and p2fail then endgameAmulti(); return end
 
 	love.audio.stop(blockfall); love.audio.play(blockfall)
+
+	-- Award score for both placed pieces
+	if not p1fail then scorescorep1 = scorescorep1 + 100 end
+	if not p2fail then scorescorep2 = scorescorep2 + 100 end
 
 	-- include both active pieces in density check
 	local removed = amulti_checklinedensity(true, false, false)
