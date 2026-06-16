@@ -12,7 +12,7 @@ AMULTI_P2_RIGHT = 868
 
 amulti_lineclearduration     = 1.2
 amulti_lineclearblinks       = 7
-amulti_linecleartreshold     = 5.1
+amulti_linecleartreshold     = 2.1
 amulti_densityupdateinterval = 1/30
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,8 @@ function gameAmulti_load()
 	difficulty_speed = 100
 	p1fail = false
 	p2fail = false
+	p1_control_enabled = true
+	p2_control_enabled = true
 	p1color = {255, 50, 50}
 	p2color = {50, 255, 50}
 
@@ -72,6 +74,9 @@ function gameAmulti_load()
 	amulti_densityupdatetimer = 0
 	amulti_newblockp1 = false
 	amulti_newblockp2 = false
+
+	-- internal guard to prevent recursive forced endblock calls
+	amulti_forced_endblock = false
 
 	-- Physics
 	meter = 30
@@ -343,59 +348,65 @@ function gameAmulti_update(dt)
 
 	elseif gamestate == "gameAmulti" then
 		-- controls P1
-		if p1fail == false then
-			if love.keyboard.isDown("h") then
-				if tetribodiesp1[counterp1]:getAngularVelocity() < 3 then tetribodiesp1[counterp1]:applyTorque(70) end
-			end
-			if love.keyboard.isDown("g") then
-				if tetribodiesp1[counterp1]:getAngularVelocity() > -3 then tetribodiesp1[counterp1]:applyTorque(-70) end
-			end
-			if love.keyboard.isDown("a") then
-				local x, y = tetribodiesp1[counterp1]:getWorldCenter()
-				tetribodiesp1[counterp1]:applyForce(-70, 0, x, y)
-			end
-			if love.keyboard.isDown("d") then
-				local x, y = tetribodiesp1[counterp1]:getWorldCenter()
-				tetribodiesp1[counterp1]:applyForce(70, 0, x, y)
-			end
-			local x, y = tetribodiesp1[counterp1]:getLinearVelocity()
-			if love.keyboard.isDown("s") then
-				if y > difficulty_speed*5 then
-					tetribodiesp1[counterp1]:setLinearVelocity(x, difficulty_speed*5)
-				else
-					local cx, cy = tetribodiesp1[counterp1]:getWorldCenter()
-					tetribodiesp1[counterp1]:applyForce(0, 20, cx, cy)
+		if p1fail == false and p1_control_enabled and active_is_controllable(1) then
+			local active1 = tetribodiesp1[counterp1]
+			if active1 then
+				if love.keyboard.isDown("h") then
+					if active1:getAngularVelocity() < 3 then active1:applyTorque(70) end
 				end
-			else
-				if y > difficulty_speed then tetribodiesp1[counterp1]:setLinearVelocity(x, y-2000*dt) end
+				if love.keyboard.isDown("g") then
+					if active1:getAngularVelocity() > -3 then active1:applyTorque(-70) end
+				end
+				if love.keyboard.isDown("a") then
+					local x, y = active1:getWorldCenter()
+					active1:applyForce(-70, 0, x, y)
+				end
+				if love.keyboard.isDown("d") then
+					local x, y = active1:getWorldCenter()
+					active1:applyForce(70, 0, x, y)
+				end
+				local x, y = active1:getLinearVelocity()
+				if love.keyboard.isDown("s") then
+					if y > difficulty_speed*5 then
+						active1:setLinearVelocity(x, difficulty_speed*5)
+					else
+						local cx, cy = active1:getWorldCenter()
+						active1:applyForce(0, 20, cx, cy)
+					end
+				else
+					if y > difficulty_speed then active1:setLinearVelocity(x, y-2000*dt) end
+				end
 			end
 		end
 		-- controls P2
-		if p2fail == false then
-			if love.keyboard.isDown("kp2") then
-				if tetribodiesp2[counterp2]:getAngularVelocity() < 3 then tetribodiesp2[counterp2]:applyTorque(70) end
-			end
-			if love.keyboard.isDown("kp1") then
-				if tetribodiesp2[counterp2]:getAngularVelocity() > -3 then tetribodiesp2[counterp2]:applyTorque(-70) end
-			end
-			if love.keyboard.isDown("left") then
-				local x, y = tetribodiesp2[counterp2]:getWorldCenter()
-				tetribodiesp2[counterp2]:applyForce(-70, 0, x, y)
-			end
-			if love.keyboard.isDown("right") then
-				local x, y = tetribodiesp2[counterp2]:getWorldCenter()
-				tetribodiesp2[counterp2]:applyForce(70, 0, x, y)
-			end
-			local x, y = tetribodiesp2[counterp2]:getLinearVelocity()
-			if love.keyboard.isDown("down") then
-				if y > difficulty_speed*5 then
-					tetribodiesp2[counterp2]:setLinearVelocity(x, difficulty_speed*5)
-				else
-					local cx, cy = tetribodiesp2[counterp2]:getWorldCenter()
-					tetribodiesp2[counterp2]:applyForce(0, 20, cx, cy)
+		if p2fail == false and p2_control_enabled and active_is_controllable(2) then
+			local active2 = tetribodiesp2[counterp2]
+			if active2 then
+				if love.keyboard.isDown("kp2") then
+					if active2:getAngularVelocity() < 3 then active2:applyTorque(70) end
 				end
-			else
-				if y > difficulty_speed then tetribodiesp2[counterp2]:setLinearVelocity(x, y-2000*dt) end
+				if love.keyboard.isDown("kp1") then
+					if active2:getAngularVelocity() > -3 then active2:applyTorque(-70) end
+				end
+				if love.keyboard.isDown("left") then
+					local x, y = active2:getWorldCenter()
+					active2:applyForce(-70, 0, x, y)
+				end
+				if love.keyboard.isDown("right") then
+					local x, y = active2:getWorldCenter()
+					active2:applyForce(70, 0, x, y)
+				end
+				local x, y = active2:getLinearVelocity()
+				if love.keyboard.isDown("down") then
+					if y > difficulty_speed*5 then
+						active2:setLinearVelocity(x, difficulty_speed*5)
+					else
+						local cx, cy = active2:getWorldCenter()
+						active2:applyForce(0, 20, cx, cy)
+					end
+				else
+					if y > difficulty_speed then active2:setLinearVelocity(x, y-2000*dt) end
+				end
 			end
 		end
 
@@ -494,6 +505,9 @@ function game_addTetriAmultip1()
     createtetriAmultip1(nextpiecep1, counterp1, 388, blockstartY)
     tetribodiesp1[counterp1]:setLinearVelocity(0, difficulty_speed)
 
+	-- enable control for the newly spawned piece
+	p1_control_enabled = true
+
     -- Убеждаемся, что randomtable достаточно велик
     while counterp1 > #randomtable do
         table.insert(randomtable, math.random(7))
@@ -515,6 +529,9 @@ function game_addTetriAmultip2()
 
     createtetriAmultip2(nextpiecep2, counterp2, 708, blockstartY)
     tetribodiesp2[counterp2]:setLinearVelocity(0, difficulty_speed)
+
+	-- enable control for the newly spawned piece
+	p2_control_enabled = true
 
     while counterp2 > #randomtable do
         table.insert(randomtable, math.random(7))
@@ -628,12 +645,16 @@ end
 function endblockAmultip1()
 	-- req #1: in invalid mode, let settled pieces pass through center wall
 	if gameno == 2 then
-		for j, v in pairs(tetrishapesp1[counterp1]) do
-			v:setMask(3, 2)
+		if tetrishapesp1[counterp1] then
+			for j, v in pairs(tetrishapesp1[counterp1]) do
+				v:setMask(3, 2)
+			end
 		end
 	end
 
-	if tetribodiesp1[counterp1]:getY() < losingY then
+	local active1 = tetribodiesp1[counterp1]
+	if not active1 then return end
+	if active1:getY() < losingY then
 		p1fail = true
 		if p2fail then endgameAmulti() end
 	else
@@ -650,12 +671,16 @@ end
 
 function endblockAmultip2()
 	if gameno == 2 then
-		for j, v in pairs(tetrishapesp2[counterp2]) do
-			v:setMask(2, 3)
+		if tetrishapesp2[counterp2] then
+			for j, v in pairs(tetrishapesp2[counterp2]) do
+				v:setMask(2, 3)
+			end
 		end
 	end
 
-	if tetribodiesp2[counterp2]:getY() < losingY then
+	local active2 = tetribodiesp2[counterp2]
+	if not active2 then return end
+	if active2:getY() < losingY then
 		p2fail = true
 		if p1fail then endgameAmulti() end
 	else
@@ -722,7 +747,8 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 	local function sampleBody(tetribodies_tbl, tetrishapes_tbl, skip_idx)
 		for bi, bv in pairs(tetribodies_tbl) do
 			if bi ~= skip_idx then
-				for si, sv in pairs(tetrishapes_tbl[bi]) do
+				if tetrishapes_tbl[bi] then
+					for si, sv in pairs(tetrishapes_tbl[bi]) do
 					for line = 1, 18 do
 						local y0 = (line-1)*32
 						for sy = y0+4, y0+28, 8 do
@@ -746,6 +772,7 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 								local rx2 = AMULTI_P2_RIGHT - sp2*rt2
 								if rx2 > lx2 then
 									amulti_linereap2[line] = amulti_linereap2[line] + (rx2-lx2)*8
+									end
 								end
 							end
 						end
@@ -777,6 +804,45 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 	end
 
 	if not removedlines then return false end
+
+	-- If any removed line intersects the currently-controlled piece, mark it as settled
+	-- so it won't be controllable and will be processed by removeline as a settled piece.
+	-- This prevents operating on an active piece and avoids nil-index and crash scenarios.
+	local function active_overlaps_lines(bodies, shapes, active_idx, lines_tbl)
+		if not active_idx then return false end
+		local b = bodies[active_idx]
+		if not b then return false end
+		if not shapes[active_idx] then return false end
+		-- Test if any shape center falls within a removed line's Y range
+		for line = 1, 18 do
+			if lines_tbl[line] then
+				local upper = (line-1)*32
+				local lower = line*32
+				-- Test several points across the shape horizontally
+				for sx = AMULTI_P1_LEFT, AMULTI_P2_RIGHT, 100 do
+					for sy = upper+4, lower-4, 8 do
+						for j, sh in pairs(shapes[active_idx]) do
+							if sh:testPoint(sx, sy) then return true end
+						end
+					end
+				end
+			end
+		end
+		return false
+	end
+
+	-- Check active pieces for both players; if overlap detected, mark as settled
+	-- and continue with removeline processing (do not return early).
+	if active_overlaps_lines(tetribodiesp1, tetrishapesp1, counterp1, amulti_linesremovedp1) then
+		if p1fail == false then
+			amulti_mark_active_settled(1)
+		end
+	end
+	if active_overlaps_lines(tetribodiesp2, tetrishapesp2, counterp2, amulti_linesremovedp2) then
+		if p2fail == false then
+			amulti_mark_active_settled(2)
+		end
+	end
 
 	-- Sound
 	local total = nlp1 + nlp2
@@ -840,6 +906,38 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 			alreadycut[i] = true
 			amulti_removeline(i)
 		end
+	end
+
+	-- If active pieces were marked settled and touched by removeline,
+	-- set spawn flags so new pieces appear after animation
+	if not tetribodiesp1[counterp1] then
+		-- Active piece was fully destroyed by removeline
+		amulti_newblockp1 = true
+	elseif tetrishapesp1[counterp1] then
+		local has_p1_control = false
+		for j, sh in pairs(tetrishapesp1[counterp1]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p1-" then
+				has_p1_control = true
+				break
+			end
+		end
+		if not has_p1_control then amulti_newblockp1 = true end
+	end
+	
+	if not tetribodiesp2[counterp2] then
+		-- Active piece was fully destroyed by removeline
+		amulti_newblockp2 = true
+	elseif tetrishapesp2[counterp2] then
+		local has_p2_control = false
+		for j, sh in pairs(tetrishapesp2[counterp2]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p2-" then
+				has_p2_control = true
+				break
+			end
+		end
+		if not has_p2_control then amulti_newblockp2 = true end
 	end
 
 	return true
@@ -1114,4 +1212,70 @@ function amulti_cutimage_mp(bodyid, bodies, shapes, idata, imgs)
 		end
 	end
 	imgs[bodyid] = padImagedata(idata[bodyid])
+end
+
+-- Mark the active piece as settled (convert its shapes to 's-<id>' and set settled mask)
+function amulti_mark_active_settled(player)
+	if player == 1 then
+		local idx = counterp1
+		if not idx or not tetribodiesp1[idx] or not tetrishapesp1[idx] then return end
+		-- Check if already marked settled
+		local already_settled = true
+		for j, sh in pairs(tetrishapesp1[idx]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p1-" then
+				already_settled = false
+				break
+			end
+		end
+		if already_settled then return end
+		-- Mark as settled
+		local settled_mask = (gameno == 2) and {3,2} or {3}
+		for j, sh in pairs(tetrishapesp1[idx]) do
+			sh:setData("s-"..idx)
+			sh:setMask(unpack(settled_mask))
+		end
+	elseif player == 2 then
+		local idx = counterp2
+		if not idx or not tetribodiesp2[idx] or not tetrishapesp2[idx] then return end
+		-- Check if already marked settled
+		local already_settled = true
+		for j, sh in pairs(tetrishapesp2[idx]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p2-" then
+				already_settled = false
+				break
+			end
+		end
+		if already_settled then return end
+		-- Mark as settled
+		local settled_mask = (gameno == 2) and {2,3} or {2}
+		for j, sh in pairs(tetrishapesp2[idx]) do
+			sh:setData("s-"..idx)
+			sh:setMask(unpack(settled_mask))
+		end
+	end
+end
+
+function active_is_controllable(player)
+	if player == 1 then
+		local idx = counterp1
+		if not idx then return false end
+		if not tetrishapesp1[idx] then return false end
+		for j, sh in pairs(tetrishapesp1[idx]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p1-" then return true end
+		end
+		return false
+	elseif player == 2 then
+		local idx = counterp2
+		if not idx then return false end
+		if not tetrishapesp2[idx] then return false end
+		for j, sh in pairs(tetrishapesp2[idx]) do
+			local d = sh:getData()
+			if type(d) == "string" and string.sub(d,1,3) == "p2-" then return true end
+		end
+		return false
+	end
+	return false
 end
