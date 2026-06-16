@@ -940,12 +940,12 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 	end
 
 	-- Perform cuts (deduplicated: cut each line at most once)
-	-- req #6: removeline processes all pieces from both arrays
+	-- req #6: removeline processes only the player arrays where the line is removed
 	local alreadycut = {}
 	for i = 1, 18 do
 		if (amulti_linesremovedp1[i] or amulti_linesremovedp2[i]) and not alreadycut[i] then
 			alreadycut[i] = true
-			amulti_removeline(i)
+			amulti_removeline(i, amulti_linesremovedp1[i], amulti_linesremovedp2[i])
 		end
 	end
 
@@ -986,15 +986,30 @@ end
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- REMOVE LINE
--- Cuts horizontal band Y=[(lineno-1)*32, lineno*32] from all bodies in BOTH
--- player arrays (req #6).  New fragments go into the OWNER's array (req #8).
--- req #3: shared world — we process tetribodiesp1 and tetribodiesp2 together.
+-- Cuts horizontal band Y=[(lineno-1)*32, lineno*32] from the bodies that need cutting.
+-- clearP1/clearP2 control which player arrays are processed.
+-- req #8: new fragments go into the OWNER's array.
+-- req #3: shared world — we process tetribodiesp1 and tetribodiesp2 separately when needed.
 -- req #10: pieces straddling the border work because we test actual geometry.
 -- FIX: uses sparse deletion (no table.remove) so counterp1/p2 stay valid.
 -- ─────────────────────────────────────────────────────────────────────────────
-function amulti_removeline(lineno)
+function amulti_removeline(lineno, clearP1, clearP2)
 	local upperline = (lineno-1)*32
 	local lowerline =  lineno   *32
+	local side = nil
+	if clearP1 and not clearP2 then side = 1 end
+	if clearP2 and not clearP1 then side = 2 end
+
+	local function shape_overlaps_side(shape, side)
+		if not side then return true end
+		local coords = getPoints2table(shape)
+		for p = 1, #coords, 2 do
+			local x = coords[p]
+			if side == 1 and x < AMULTI_P2_LEFT then return true end
+			if side == 2 and x > AMULTI_P1_RIGHT then return true end
+		end
+		return false
+	end
 
 	-- Process one player's body array; req #8: new fragments go into same tables
 	local function processArray(bodies, shapes, kinds, idata, imgs, settled_mask)
@@ -1011,40 +1026,50 @@ function amulti_removeline(lineno)
 
 				for j, w in pairs(shapes[idx]) do
 					if w then
-						local above, inside, below = false, false, false
-						local coords = getPoints2table(w)
-						for p = 1, #coords, 2 do
-							local py = coords[p+1]
-							if     py < upperline then above  = true
-							elseif py <= lowerline then inside = true
-							else                        below  = true end
-						end
-
-						if above and inside and not below then
-							local s = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-							if s then shapecopy[#shapecopy+1]=s end; refined=true
-						elseif above and inside and below then
-							local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-							local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-							if s1 then shapecopy[#shapecopy+1]=s1 end
-							if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
-						elseif not above and inside and not below then
-							refined=true  -- shape fully removed
-						elseif not above and inside and below then
-							local s = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-							if s then shapecopy[#shapecopy+1]=s end; refined=true
-						elseif above and not inside and below then
-							local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-							local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-							if s1 then shapecopy[#shapecopy+1]=s1 end
-							if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
-						else
-							-- shape unaffected; keep a local copy
+						local process_shape = shape_overlaps_side(w, side)
+						if not process_shape then
+							-- shape is on the opposite side; keep it unchanged
 							local ct = getPoints2table(shapes[idx][j])
 							for v = 1, #ct, 2 do
 								ct[v], ct[v+1] = bodies[idx]:getLocalPoint(ct[v], ct[v+1])
 							end
 							shapecopy[#shapecopy+1] = love.physics.newPolygonShape(bodies[idx], unpack(ct))
+						else
+							local above, inside, below = false, false, false
+							local coords = getPoints2table(w)
+							for p = 1, #coords, 2 do
+								local py = coords[p+1]
+								if     py < upperline then above  = true
+								elseif py <= lowerline then inside = true
+								else                        below  = true end
+							end
+
+							if above and inside and not below then
+								local s = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+								if s then shapecopy[#shapecopy+1]=s end; refined=true
+							elseif above and inside and below then
+								local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+								local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+								if s1 then shapecopy[#shapecopy+1]=s1 end
+								if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
+							elseif not above and inside and not below then
+								refined=true  -- shape fully removed
+							elseif not above and inside and below then
+								local s = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+								if s then shapecopy[#shapecopy+1]=s end; refined=true
+							elseif above and not inside and below then
+								local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+								local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+								if s1 then shapecopy[#shapecopy+1]=s1 end
+								if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
+							else
+								-- shape unaffected; keep a local copy
+								local ct = getPoints2table(shapes[idx][j])
+								for v = 1, #ct, 2 do
+									ct[v], ct[v+1] = bodies[idx]:getLocalPoint(ct[v], ct[v+1])
+								end
+								shapecopy[#shapecopy+1] = love.physics.newPolygonShape(bodies[idx], unpack(ct))
+							end
 						end
 					end
 				end
@@ -1192,9 +1217,11 @@ function amulti_removeline(lineno)
 	local p1mask = (gameno == 2) and {3, 2} or {3}
 	local p2mask = (gameno == 2) and {2, 3} or {2}
 
-	-- req #6: process all pieces from both arrays
-	processArray(tetribodiesp1, tetrishapesp1, tetrikindp1, tetriimagedatap1, tetriimagesp1, p1mask)
-	processArray(tetribodiesp2, tetrishapesp2, tetrikindp2, tetriimagedatap2, tetriimagesp2, p2mask)
+	-- Process both arrays when any side is being cleared, because foreign pieces can occupy either side.
+	if clearP1 or clearP2 then
+		processArray(tetribodiesp1, tetrishapesp1, tetrikindp1, tetriimagedatap1, tetriimagesp1, p1mask)
+		processArray(tetribodiesp2, tetrishapesp2, tetrikindp2, tetriimagedatap2, tetriimagesp2, p2mask)
+	end
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
