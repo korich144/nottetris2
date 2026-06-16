@@ -696,7 +696,10 @@ function endblockAmultip1()
 		-- req #2: include just-settled P1 (skip_p1=false), skip still-flying P2 (skip_p2=true)
 		local removed = amulti_checklinedensity(true, false, true)
 		if not removed then
-			game_addTetriAmultip1()
+			-- If a deferred spawn is already pending for P1, don't spawn immediately
+			if not amulti_newblockp1 then
+				game_addTetriAmultip1()
+			end
 		else
 			amulti_newblockp1 = true
 		end
@@ -722,7 +725,10 @@ function endblockAmultip2()
 		-- req #2: skip still-flying P1 (skip_p1=true), include just-settled P2 (skip_p2=false)
 		local removed = amulti_checklinedensity(true, true, false)
 		if not removed then
-			game_addTetriAmultip2()
+			-- If a deferred spawn is already pending for P2, don't spawn immediately
+			if not amulti_newblockp2 then
+				game_addTetriAmultip2()
+			end
 		else
 			amulti_newblockp2 = true
 		end
@@ -1349,8 +1355,12 @@ function endblockAmultip_simultaneous()
 	local removed = amulti_checklinedensity(true, false, false)
 
 	if not removed then
-		if not p1fail then game_addTetriAmultip1() end
-		if not p2fail then game_addTetriAmultip2() end
+		if not p1fail then
+			if not amulti_newblockp1 then game_addTetriAmultip1() end
+		end
+		if not p2fail then
+			if not amulti_newblockp2 then game_addTetriAmultip2() end
+		end
 	else
 		if not p1fail then amulti_newblockp1 = true end
 		if not p2fail then amulti_newblockp2 = true end
