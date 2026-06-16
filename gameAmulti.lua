@@ -12,7 +12,7 @@ AMULTI_P2_RIGHT = 868
 
 amulti_lineclearduration     = 1.2
 amulti_lineclearblinks       = 7
-amulti_linecleartreshold     = 2.1
+amulti_linecleartreshold     = 5.1
 amulti_densityupdateinterval = 1/30
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +77,10 @@ function gameAmulti_load()
 
 	-- internal guard to prevent recursive forced endblock calls
 	amulti_forced_endblock = false
+
+	-- deferred endblock flags (set by collision callback, processed in update)
+	pending_endblock_p1 = false
+	pending_endblock_p2 = false
 
 	-- Physics
 	meter = 30
@@ -332,6 +336,35 @@ function gameAmulti_update(dt)
 	while nextpiecerot > math.pi*2 do nextpiecerot = nextpiecerot - math.pi*2 end
 
 	world:update(dt)
+
+	-- Process deferred endblocks (set by collision callback) here to avoid
+	-- calling endblock from within the physics callback and to serialize handling
+	-- process simultaneous pending endblocks atomically
+	if pending_endblock_p1 and pending_endblock_p2 then
+		pending_endblock_p1, pending_endblock_p2 = false, false
+		if not amulti_forced_endblock and p1fail == false and p2fail == false then
+			amulti_forced_endblock = true
+			endblockAmultip_simultaneous()
+			amulti_forced_endblock = false
+		end
+	else
+		if pending_endblock_p1 then
+			pending_endblock_p1 = false
+			if not amulti_forced_endblock and p1fail == false then
+				amulti_forced_endblock = true
+				endblockAmultip1()
+				amulti_forced_endblock = false
+			end
+		end
+		if pending_endblock_p2 then
+			pending_endblock_p2 = false
+			if not amulti_forced_endblock and p2fail == false then
+				amulti_forced_endblock = true
+				endblockAmultip2()
+				amulti_forced_endblock = false
+			end
+		end
+	end
 
 	if gamestarted == false then
 		if newtime - starttimer > 3 then
@@ -618,17 +651,17 @@ end
 function collideAmulti(a, b)
 	if (a == "p1-"..counterp1 and b ~= "p2-"..counterp2) or
 	   (b == "p1-"..counterp1 and a ~= "p2-"..counterp2) then
-		if p1fail == false and
+		if not amulti_forced_endblock and p1fail == false and
 		   a ~= "leftp1" and a ~= "rightp1" and
 		   b ~= "leftp1" and b ~= "rightp1" then
-			endblockAmultip1()
+			pending_endblock_p1 = true
 		end
 	elseif (a == "p2-"..counterp2 and b ~= "p1-"..counterp1) or
-	       (b == "p2-"..counterp2 and a ~= "p1-"..counterp1) then
-		if p2fail == false and
+		   (b == "p2-"..counterp2 and a ~= "p1-"..counterp1) then
+		if not amulti_forced_endblock and p2fail == false and
 		   a ~= "leftp2" and a ~= "rightp2" and
 		   b ~= "leftp2" and b ~= "rightp2" then
-			endblockAmultip2()
+			pending_endblock_p2 = true
 		end
 	elseif gamestate == "gameAmulti_results" then
 		if (a=="mario" and b=="resultsfloor") or (b=="mario" and a=="resultsfloor") then
@@ -636,6 +669,7 @@ function collideAmulti(a, b)
 		elseif (a=="luigi" and b=="resultsfloor") or (b=="luigi" and a=="resultsfloor") then
 			jumpframe = false
 		end
+		return
 	end
 end
 
@@ -910,10 +944,10 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 
 	-- If active pieces were marked settled and touched by removeline,
 	-- set spawn flags so new pieces appear after animation
-	if not tetribodiesp1[counterp1] then
-		-- Active piece was fully destroyed by removeline
+	if not tetribodiesp1[counterp1] or not tetrishapesp1[counterp1] then
+		-- Active piece was fully destroyed or has no shapes
 		amulti_newblockp1 = true
-	elseif tetrishapesp1[counterp1] then
+	else
 		local has_p1_control = false
 		for j, sh in pairs(tetrishapesp1[counterp1]) do
 			local d = sh:getData()
@@ -925,10 +959,10 @@ function amulti_checklinedensity(active, skip_active_p1, skip_active_p2)
 		if not has_p1_control then amulti_newblockp1 = true end
 	end
 	
-	if not tetribodiesp2[counterp2] then
-		-- Active piece was fully destroyed by removeline
+	if not tetribodiesp2[counterp2] or not tetrishapesp2[counterp2] then
+		-- Active piece was fully destroyed or has no shapes
 		amulti_newblockp2 = true
-	elseif tetrishapesp2[counterp2] then
+	else
 		local has_p2_control = false
 		for j, sh in pairs(tetrishapesp2[counterp2]) do
 			local d = sh:getData()
@@ -969,40 +1003,42 @@ function amulti_removeline(lineno)
 				local shapecopy = {}   -- temp refined shapes attached to bodies[idx]
 
 				for j, w in pairs(shapes[idx]) do
-					local above, inside, below = false, false, false
-					local coords = getPoints2table(w)
-					for p = 1, #coords, 2 do
-						local py = coords[p+1]
-						if     py < upperline then above  = true
-						elseif py <= lowerline then inside = true
-						else                        below  = true end
-					end
-
-					if above and inside and not below then
-						local s = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-						if s then shapecopy[#shapecopy+1]=s end; refined=true
-					elseif above and inside and below then
-						local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-						local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-						if s1 then shapecopy[#shapecopy+1]=s1 end
-						if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
-					elseif not above and inside and not below then
-						refined=true  -- shape fully removed
-					elseif not above and inside and below then
-						local s = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-						if s then shapecopy[#shapecopy+1]=s end; refined=true
-					elseif above and not inside and below then
-						local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
-						local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
-						if s1 then shapecopy[#shapecopy+1]=s1 end
-						if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
-					else
-						-- shape unaffected; keep a local copy
-						local ct = getPoints2table(shapes[idx][j])
-						for v = 1, #ct, 2 do
-							ct[v], ct[v+1] = bodies[idx]:getLocalPoint(ct[v], ct[v+1])
+					if w then
+						local above, inside, below = false, false, false
+						local coords = getPoints2table(w)
+						for p = 1, #coords, 2 do
+							local py = coords[p+1]
+							if     py < upperline then above  = true
+							elseif py <= lowerline then inside = true
+							else                        below  = true end
 						end
-						shapecopy[#shapecopy+1] = love.physics.newPolygonShape(bodies[idx], unpack(ct))
+
+						if above and inside and not below then
+							local s = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+							if s then shapecopy[#shapecopy+1]=s end; refined=true
+						elseif above and inside and below then
+							local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+							local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+							if s1 then shapecopy[#shapecopy+1]=s1 end
+							if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
+						elseif not above and inside and not below then
+							refined=true  -- shape fully removed
+						elseif not above and inside and below then
+							local s = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+							if s then shapecopy[#shapecopy+1]=s end; refined=true
+						elseif above and not inside and below then
+							local s1 = amulti_refineshape(upperline, 1, idx, bodies[idx], j, shapes)
+							local s2 = amulti_refineshape(lowerline,-1, idx, bodies[idx], j, shapes)
+							if s1 then shapecopy[#shapecopy+1]=s1 end
+							if s2 then shapecopy[#shapecopy+1]=s2 end; refined=true
+						else
+							-- shape unaffected; keep a local copy
+							local ct = getPoints2table(shapes[idx][j])
+							for v = 1, #ct, 2 do
+								ct[v], ct[v+1] = bodies[idx]:getLocalPoint(ct[v], ct[v+1])
+							end
+							shapecopy[#shapecopy+1] = love.physics.newPolygonShape(bodies[idx], unpack(ct))
+						end
 					end
 				end
 
@@ -1018,6 +1054,9 @@ function amulti_removeline(lineno)
 						bodies[idx]:destroy()
 						bodies[idx]=nil; shapes[idx]=nil; kinds[idx]=nil
 						imgs[idx]=nil;   idata[idx]=nil
+						-- If this was the active piece for P1, mark that new block must spawn
+						if idx == counterp1 then amulti_newblockp1 = true end
+						if idx == counterp2 then amulti_newblockp2 = true end
 					else
 						-- Pre-extract world coords BEFORE any body destruction
 						local precalc = {}
@@ -1155,6 +1194,7 @@ end
 -- REFINE SHAPE  (like gameA's refineshape but uses amulti_getintersectX)
 -- ─────────────────────────────────────────────────────────────────────────────
 function amulti_refineshape(line, mult, bodyid, body, shapeid, shapes_tbl)
+	if not shapes_tbl[bodyid] or not shapes_tbl[bodyid][shapeid] then return nil end
 	local leftx, rightx = amulti_getintersectX(shapes_tbl[bodyid][shapeid], line)
 	if leftx ~= -1 then
 		local coords = getPoints2table(shapes_tbl[bodyid][shapeid])
@@ -1261,7 +1301,7 @@ function active_is_controllable(player)
 	if player == 1 then
 		local idx = counterp1
 		if not idx then return false end
-		if not tetrishapesp1[idx] then return false end
+		if not tetribodiesp1[idx] or not tetrishapesp1[idx] then return false end
 		for j, sh in pairs(tetrishapesp1[idx]) do
 			local d = sh:getData()
 			if type(d) == "string" and string.sub(d,1,3) == "p1-" then return true end
@@ -1270,7 +1310,7 @@ function active_is_controllable(player)
 	elseif player == 2 then
 		local idx = counterp2
 		if not idx then return false end
-		if not tetrishapesp2[idx] then return false end
+		if not tetribodiesp2[idx] or not tetrishapesp2[idx] then return false end
 		for j, sh in pairs(tetrishapesp2[idx]) do
 			local d = sh:getData()
 			if type(d) == "string" and string.sub(d,1,3) == "p2-" then return true end
@@ -1278,4 +1318,41 @@ function active_is_controllable(player)
 		return false
 	end
 	return false
+end
+
+-- Handle both players ending block in the same frame
+function endblockAmultip_simultaneous()
+	-- apply invalid-mode mask adjustments
+	if gameno == 2 then
+		if tetrishapesp1[counterp1] then
+			for j, v in pairs(tetrishapesp1[counterp1]) do v:setMask(3,2) end
+		end
+		if tetrishapesp2[counterp2] then
+			for j, v in pairs(tetrishapesp2[counterp2]) do v:setMask(2,3) end
+		end
+	end
+
+	-- check losing conditions
+	local a1 = tetribodiesp1[counterp1]
+	local a2 = tetribodiesp2[counterp2]
+	if a1 and a1:getY() < losingY then
+		p1fail = true
+	end
+	if a2 and a2:getY() < losingY then
+		p2fail = true
+	end
+	if p1fail and p2fail then endgameAmulti(); return end
+
+	love.audio.stop(blockfall); love.audio.play(blockfall)
+
+	-- include both active pieces in density check
+	local removed = amulti_checklinedensity(true, false, false)
+
+	if not removed then
+		if not p1fail then game_addTetriAmultip1() end
+		if not p2fail then game_addTetriAmultip2() end
+	else
+		if not p1fail then amulti_newblockp1 = true end
+		if not p2fail then amulti_newblockp2 = true end
+	end
 end
