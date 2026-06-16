@@ -123,9 +123,9 @@ function gameAmulti_draw()
 
 	-- background
 	if gamestate ~= "gameAmulti_results" then
-		love.graphics.draw(gamebackgroundmulti, 0, 0, 0, mpscale)
+		love.graphics.draw(gamebackgroundmultiA, 0, 0, 0, mpscale)
 	else
-		love.graphics.draw(multiresults, 0, 0, 0, mpscale)
+		love.graphics.draw(multiresultsA, 0, 0, 0, mpscale)
 	end
 
 	-- countdown
