@@ -194,7 +194,6 @@ function love.load()
 	piececenterpreview[7] = {13, 9}
 	
 	loadhighscores()
-	loadconfig()
 	
 	loadimages()
 	
@@ -512,33 +511,6 @@ function changevolume(i)
 	newlevel:setVolume( 0.6*i )
 end
 
-function loadconfig()
-	--standard controls
-	--[[controls = {}
-	controls["left"] = {"left"}
-	controls["right"] = {"right"}
-	controls["down"] = {"down"}
-	controls["rotateleft"] = {"y", "z", "w"}
-	controls["rotateright"] = {"x"}
-	
-	controls["p1left"] = {"a"}
-	controls["p1right"] = {"d"}
-	controls["p1down"] = {"s"}
-	controls["p1rotateleft"] = {"g"}
-	controls["p1rotateright"] = {"h"}
-	
-	controls["p2left"] = {"left"}
-	controls["p2right"] = {"right"}
-	controls["p2down"] = {"down"}
-	controls["p2rotateleft"] = {"kp1"}
-	controls["p2rotateright"] = {"kp2"}
-	
-	local keys = {"left", "right", "down", "rotateleft", "rotateright", "p1left", "p1right", "p1down", "p1rotateleft", "p1rotateright", "p2left", "p2right", "p2down", "p2rotateleft", "p2rotateright"}
-	
-	
-	print(unpack(controls["left"]))--]]
-end
-
 function loadoptions()
 	if love.filesystem.exists("options.txt") then
 		local s = love.filesystem.read("options.txt")
@@ -547,46 +519,25 @@ function loadoptions()
 			local split2 = split1[i]:split("=")
 			if split2[1] == "volume" then
 				local v = tonumber(split2[2])
-				--clamp and round
-				if v < 0 then
-					v = 0
-				elseif v > 1 then
-					v = 1
-				end
+				if v < 0 then v = 0
+				elseif v > 1 then v = 1 end
 				v = math.floor(v*10)/10
-				
 				volume = v
-				
 			elseif split2[1] == "hue" then
 				hue = tonumber(split2[2])
-			
 			elseif split2[1] == "scale" then
 				scale = tonumber(split2[2])
-			
 			elseif split2[1] == "fullscreen" then
-				if split2[2] == "true" then
-					fullscreen = true
-				else
-					fullscreen = false
-				end	
+				fullscreen = (split2[2] == "true")
+			elseif split2[1]:sub(1,4) == "key_" then
+				local action = split2[1]:sub(5)
+				controls.setBinding(action, split2[2])
 			end
 		end
-		
-		if volume == nil then
-			volume = 1
-		end
-		if hue == nil then
-			hue = 0.08
-		end
-		if fullscreen == nil then
-			fullscreen = false
-		end
-		
-		if scale == nil then
-			scale = suggestedscale
-		end
-		
-		
+		if volume == nil then volume = 1 end
+		if hue == nil then hue = 0.08 end
+		if fullscreen == nil then fullscreen = false end
+		if scale == nil then scale = suggestedscale end
 	else
 		volume = 1
 		hue = 0.08
@@ -606,6 +557,12 @@ function saveoptions()
 	s = s .. "scale=" .. scale .. "\n"
 	s = s .. "fullscreen=" .. tostring(fullscreen) .. "\n"
 	
+	for action, setting in pairs(controls.settings) do
+		if setting[1] == "key" then
+			s = s .. "key_" .. action .. "=" .. controls.getBinding(action) .. "\n"
+		end
+	end
+
 	love.filesystem.write("options.txt", s)
 end
 
@@ -1144,17 +1101,17 @@ function love.keypressed( key, unicode )
 				love.audio.play(music[musicno])
 			end
 		end
-	elseif gamestate == "gameBmulti" and gamestarted == true then
+		elseif gamestate == "gameBmulti" and gamestarted == true then
 		if controls.check("escape", key) then
 			if not fullscreen then
 				love.graphics.setMode( 160*scale, 144*scale, false, vsync, 0 )
 			end
 			gamestate = "multimenu"
 		end
-		if controls.check("left", key) or controls.check("right", key) or controls.check("leftp2", key) or controls.check("rightp2", key) then
+		if controls.check("p1left", key) or controls.check("p1right", key) or controls.check("p2left", key) or controls.check("p2right", key) then
 			love.audio.stop(blockmove)
 			love.audio.play(blockmove)
-		elseif controls.check("rotateleft", key) or controls.check("rotateright", key) or controls.check("rotaterightp2", key) or controls.check("rotateleftp2", key) then
+		elseif controls.check("p1rotateleft", key) or controls.check("p1rotateright", key) or controls.check("p2rotateleft", key) or controls.check("p2rotateright", key) then
 			love.audio.stop(blockturn)
 			love.audio.play(blockturn)
 		end
@@ -1188,10 +1145,10 @@ function love.keypressed( key, unicode )
 			end
 			gamestate = "multimenuA"
 		end
-		if controls.check("left", key) or controls.check("right", key) or controls.check("leftp2", key) or controls.check("rightp2", key) then
+		if controls.check("p1left", key) or controls.check("p1right", key) or controls.check("p2left", key) or controls.check("p2right", key) then
 			love.audio.stop(blockmove)
 			love.audio.play(blockmove)
-		elseif controls.check("rotateleft", key) or controls.check("rotateright", key) or controls.check("rotaterightp2", key) or controls.check("rotateleftp2", key) then
+		elseif controls.check("p1rotateleft", key) or controls.check("p1rotateright", key) or controls.check("p2rotateleft", key) or controls.check("p2rotateright", key) then
 			love.audio.stop(blockturn)
 			love.audio.play(blockturn)
 		end

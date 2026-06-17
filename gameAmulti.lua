@@ -12,7 +12,7 @@ AMULTI_P2_RIGHT = 868
 
 amulti_lineclearduration     = 1.2
 amulti_lineclearblinks       = 7
-amulti_linecleartreshold     = 5.1
+amulti_linecleartreshold     = 7.8
 amulti_densityupdateinterval = 1/30
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -385,22 +385,22 @@ function gameAmulti_update(dt)
 		if p1fail == false and p1_control_enabled and active_is_controllable(1) then
 			local active1 = tetribodiesp1[counterp1]
 			if active1 then
-				if love.keyboard.isDown("h") then
+				if controls.isDown("p1rotateright") then
 					if active1:getAngularVelocity() < 3 then active1:applyTorque(70) end
 				end
-				if love.keyboard.isDown("g") then
+				if controls.isDown("p1rotateleft") then
 					if active1:getAngularVelocity() > -3 then active1:applyTorque(-70) end
 				end
-				if love.keyboard.isDown("a") then
+				if controls.isDown("p1left") then
 					local x, y = active1:getWorldCenter()
 					active1:applyForce(-70, 0, x, y)
 				end
-				if love.keyboard.isDown("d") then
+				if controls.isDown("p1right") then
 					local x, y = active1:getWorldCenter()
 					active1:applyForce(70, 0, x, y)
 				end
 				local x, y = active1:getLinearVelocity()
-				if love.keyboard.isDown("s") then
+				if controls.isDown("p1down") then
 					if y > difficulty_speed*5 then
 						active1:setLinearVelocity(x, difficulty_speed*5)
 					else
@@ -416,22 +416,22 @@ function gameAmulti_update(dt)
 		if p2fail == false and p2_control_enabled and active_is_controllable(2) then
 			local active2 = tetribodiesp2[counterp2]
 			if active2 then
-				if love.keyboard.isDown("kp2") then
+				if controls.isDown("p2rotateright") then
 					if active2:getAngularVelocity() < 3 then active2:applyTorque(70) end
 				end
-				if love.keyboard.isDown("kp1") then
+				if controls.isDown("p2rotateleft") then
 					if active2:getAngularVelocity() > -3 then active2:applyTorque(-70) end
 				end
-				if love.keyboard.isDown("left") then
+				if controls.isDown("p2left") then
 					local x, y = active2:getWorldCenter()
 					active2:applyForce(-70, 0, x, y)
 				end
-				if love.keyboard.isDown("right") then
+				if controls.isDown("p2right") then
 					local x, y = active2:getWorldCenter()
 					active2:applyForce(70, 0, x, y)
 				end
 				local x, y = active2:getLinearVelocity()
-				if love.keyboard.isDown("down") then
+				if controls.isDown("p2down") then
 					if y > difficulty_speed*5 then
 						active2:setLinearVelocity(x, difficulty_speed*5)
 					else
@@ -506,11 +506,11 @@ function gameAmulti_update(dt)
 		local ctp = love.timer.getTime() - crytimer
 		if ctp > 0.4 then cryframe = not cryframe;  crytimer = love.timer.getTime() end
 		if winner == 1 then
-			if love.keyboard.isDown("a") then local x,y=mariobody:getWorldCenter(); mariobody:applyForce(-30,0,x,y-8) end
-			if love.keyboard.isDown("d") then local x,y=mariobody:getWorldCenter(); mariobody:applyForce( 30,0,x,y-8) end
+			if controls.isDown("p1left")  then local x,y=mariobody:getWorldCenter(); mariobody:applyForce(-30,0,x,y-8) end
+			if controls.isDown("p1right") then local x,y=mariobody:getWorldCenter(); mariobody:applyForce( 30,0,x,y-8) end
 		elseif winner == 2 then
-			if love.keyboard.isDown("left")  then local x,y=luigibody:getWorldCenter(); luigibody:applyForce(-30,0,x,y-8) end
-			if love.keyboard.isDown("right") then local x,y=luigibody:getWorldCenter(); luigibody:applyForce( 30,0,x,y-8) end
+			if controls.isDown("p2left")  then local x,y=luigibody:getWorldCenter(); luigibody:applyForce(-30,0,x,y-8) end
+			if controls.isDown("p2right") then local x,y=luigibody:getWorldCenter(); luigibody:applyForce( 30,0,x,y-8) end
 		end
 	end
 end
