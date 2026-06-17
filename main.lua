@@ -164,6 +164,7 @@ function love.load()
 	scoreaddtime = 0.5
 	startdelaytime = 0
 	density = 0.1
+	skipfail = false
 	
 	blockstartY = -64 --where new blocks are created
 	losingY = 0 --lose if block 1 collides above this line
@@ -1193,6 +1194,11 @@ function love.keypressed( key, unicode )
 		elseif controls.check("rotateleft", key) or controls.check("rotateright", key) or controls.check("rotaterightp2", key) or controls.check("rotateleftp2", key) then
 			love.audio.stop(blockturn)
 			love.audio.play(blockturn)
+		end
+		
+	elseif gamestate == "failedAmulti" or gamestate == "failingAmulti" or gamestate == "failedBmulti" or gamestate == "failingBmulti"  then
+		if controls.check("return", key) or controls.check("escape", key) then
+			skipfailed = true
 		end
 		
 	elseif gamestate == "gameAmulti_results" then

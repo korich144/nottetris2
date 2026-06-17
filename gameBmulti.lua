@@ -402,7 +402,7 @@ function gameBmulti_update(dt)
 		end
 	elseif gamestate == "failingBmulti" then
 		timepassed = love.timer.getTime() - colorizetimer
-		if timepassed > colorizeduration then
+		if timepassed > colorizeduration or skipfailed == true then
 			gamestate = "failedBmulti"
 			
 			wallshapesp1[2]:destroy()
@@ -425,7 +425,7 @@ function gameBmulti_update(dt)
 			end
 		end
 		
-		if clearcheck then --RESULTS SCREEN INI!--
+		if clearcheck or skipfailed == true then --RESULTS SCREEN INI!--
 			gamestate = "gameBmulti_results"
 			jumptimer = love.timer.getTime()
 			crytimer = love.timer.getTime()
@@ -462,6 +462,7 @@ function gameBmulti_update(dt)
 				luigibody:setLinearVelocity(x, -300)
 			end
 			jumpframe = true
+			skipfailed = false
 		end
 	elseif gamestate == "gameBmulti_results" then
 		jumptimepassed = love.timer.getTime() - jumptimer

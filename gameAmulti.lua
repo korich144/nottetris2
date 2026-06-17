@@ -455,7 +455,7 @@ function gameAmulti_update(dt)
 
 	elseif gamestate == "failingAmulti" then
 		local tp = love.timer.getTime() - colorizetimer
-		if tp > colorizeduration then
+		if tp > colorizeduration or skipfailed == true then
 			gamestate = "failedAmulti"
 			wallshapesp1[2]:destroy();  wallshapesp2[2]:destroy()
 			love.audio.stop(gameover2);  love.audio.play(gameover2)
@@ -465,7 +465,7 @@ function gameAmulti_update(dt)
 		local ok = true
 		for i, v in pairs(tetribodiesp1) do if v:getY() < 162*mpscale then ok = false end end
 		for i, v in pairs(tetribodiesp2) do if v:getY() < 162*mpscale then ok = false end end
-		if ok then
+		if ok or skipfailed == true then
 			gamestate = "gameAmulti_results"
 			jumptimer = love.timer.getTime();  crytimer = love.timer.getTime()
 			love.audio.play(musicresults)
@@ -488,6 +488,7 @@ function gameAmulti_update(dt)
 				local x, y = luigibody:getLinearVelocity();  luigibody:setLinearVelocity(x, -300)
 			end
 			jumpframe = true
+			skipfailed = false
 		end
 
 	elseif gamestate == "gameAmulti_results" then
