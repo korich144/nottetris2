@@ -734,6 +734,9 @@ function endblockp1()
 		if p2fail == true then --Both players have hit the top
 			endgame()
 		end
+	elseif p2fail and scorescorep1 > scorescorep2 then 
+		p1fail = true
+		endgame() --P1 wins by time, so end the game immediately
 	else --P1 didn't hit the top yet
 		love.audio.stop(blockfall)
 		love.audio.play(blockfall)
@@ -757,6 +760,9 @@ function endblockp2()
 		if p1fail == true then --Both players have hit the top
 			endgame()
 		end
+	elseif p1fail and scorescorep1 < scorescorep2 then 
+		p2fail = true
+		endgame() --P2 wins by time, so end the game immediately
 	else --P2 didn't hit the top yet
 		love.audio.stop(blockfall)
 		love.audio.play(blockfall)

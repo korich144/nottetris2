@@ -693,6 +693,9 @@ function endblockAmultip1()
 	if active1:getY() < losingY then
 		p1fail = true
 		if p2fail then endgameAmulti() end
+	elseif p2fail and scorescorep1 > scorescorep2 then 
+		p1fail = true
+		endgameAmulti() 
 	else
 		love.audio.stop(blockfall);  love.audio.play(blockfall)
 		-- Award score for a placed piece
@@ -724,6 +727,9 @@ function endblockAmultip2()
 	if active2:getY() < losingY then
 		p2fail = true
 		if p1fail then endgameAmulti() end
+	elseif p1fail and scorescorep1 < scorescorep2 then 
+		p2fail = true
+		endgameAmulti() 
 	else
 		love.audio.stop(blockfall);  love.audio.play(blockfall)
 		-- Award score for a placed piece
